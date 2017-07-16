@@ -601,3 +601,53 @@ CGRect CGPathGetPathBoundingBox(CGPathRef path)
   return CGRectMake(minX, minY, (maxX-minX), (maxY-minY));
 }
 
+void CGPathAddRoundedRect(CGMutablePathRef path,
+                          const CGAffineTransform *m, CGRect rect,
+                          CGFloat cornerWidth, CGFloat cornerHeight)
+{
+  NSPoint startp, endp, controlp1, controlp2, topLeft, topRight, bottomRight;
+
+  cornerWidth = MIN(cornerWidth, rect.size.width / 2.0);
+  cornerHeight = MIN(cornerHeight, rect.size.height / 2.0);
+
+  if (cornerWidth == 0.0 || cornerHeight == 0.0)
+  {
+    CGPathAddRect(path, m, rect);
+    return;
+  }
+
+  topLeft = NSMakePoint(CGRectGetMinX(rect), CGRectGetMaxY(rect));
+  topRight = NSMakePoint(CGRectGetMaxX(rect), CGRectGetMaxY(rect));
+  bottomRight = NSMakePoint(CGRectGetMaxX(rect), CGRectGetMinY(rect));
+
+  startp = NSMakePoint(topLeft.x + cornerWidth, topLeft.y);
+  endp = NSMakePoint(topLeft.x, topLeft.y - cornerHeight);
+  controlp1 = NSMakePoint(startp.x - (KAPPA * cornerWidth), startp.y);
+  controlp2 = NSMakePoint(endp.x, endp.y + (KAPPA * cornerHeight));
+  CGPathMoveToPoint(path, m, startp.x, startp.y);
+  CGPathAddCurveToPoint(path, m, controlp1.x, controlp1.y, controlp2.x, controlp2.y, endp.x, endp.y);
+
+  startp = NSMakePoint(rect.origin.x, rect.origin.y + cornerHeight);
+  endp = NSMakePoint(rect.origin.x + cornerWidth, rect.origin.y);
+  controlp1 = NSMakePoint(startp.x, startp.y - (KAPPA * cornerHeight));
+  controlp2 = NSMakePoint(endp.x - (KAPPA * cornerWidth), endp.y);
+  CGPathAddLineToPoint(path, m, startp.x, startp.y);
+  CGPathAddCurveToPoint(path, m, controlp1.x, controlp1.y, controlp2.x, controlp2.y, endp.x, endp.y);
+
+  startp = NSMakePoint(bottomRight.x - cornerWidth, bottomRight.y);
+  endp = NSMakePoint(bottomRight.x, bottomRight.y + cornerHeight);
+  controlp1 = NSMakePoint(startp.x + (KAPPA * cornerWidth), startp.y);
+  controlp2 = NSMakePoint(endp.x, endp.y - (KAPPA * cornerHeight));
+  CGPathAddLineToPoint(path, m, startp.x, startp.y);
+  CGPathAddCurveToPoint(path, m, controlp1.x, controlp1.y, controlp2.x, controlp2.y, endp.x, endp.y);
+
+  startp = NSMakePoint(topRight.x, topRight.y - cornerHeight);
+  endp = NSMakePoint(topRight.x - cornerWidth, topRight.y);
+  controlp1 = NSMakePoint(startp.x, startp.y + (KAPPA * cornerHeight));
+  controlp2 = NSMakePoint(endp.x + (KAPPA * cornerWidth), endp.y);
+  CGPathAddLineToPoint(path, m, startp.x, startp.y);
+  CGPathAddCurveToPoint(path, m, controlp1.x, controlp1.y, controlp2.x, controlp2.y, endp.x, endp.y);
+
+  CGPathCloseSubpath(path);
+}
+
