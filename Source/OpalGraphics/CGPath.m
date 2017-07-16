@@ -119,7 +119,7 @@ bool CGPathIsRect(CGPathRef path, CGRect *rect)
   return [path isRect: rect];
 }
 
-CGRect CGPathGetPathBoundingBox(CGPathRef path)
+CGRect CGPathGetBoundingBox(CGPathRef path)
 {
   NSUInteger count = [path count];
   CGFloat minX = 0.0;
@@ -130,28 +130,8 @@ CGRect CGPathGetPathBoundingBox(CGPathRef path)
   for (NSUInteger i=0; i<count; i++)
   {
     CGPoint points[3];
-    CGPathElementType type =[path elementTypeAtIndex: i points: points];
-
-    NSUInteger numPoints;
-    switch (type)
-    {
-      case kCGPathElementMoveToPoint:
-        numPoints = 1;
-        break;
-      case kCGPathElementAddLineToPoint:
-        numPoints = 1;
-        break;
-      case kCGPathElementAddQuadCurveToPoint:
-        numPoints = 2;
-        break;
-      case kCGPathElementAddCurveToPoint:
-        numPoints = 3;
-        break;
-      case kCGPathElementCloseSubpath:
-      default:
-        numPoints = 0;
-        break;
-    }
+    CGPathElementType type = [path elementTypeAtIndex: i points: points];
+    NSUInteger numPoints = _OPPathElementPointCount(type);
 
     for (NSUInteger p=0; p<numPoints; p++)
     {
@@ -555,3 +535,69 @@ void CGPathAddEllipseInRect(
   p2 = CGPointMake(originx + width / 2 + hdiff, originy + height);
   CGPathAddCurveToPoint(path, m, p1.x, p1.y, p2.x, p2.y, p.x, p.y);
 }
+
+CGRect CGPathGetPathBoundingBox(CGPathRef path)
+{
+  NSUInteger count = [path count];
+
+  CGFloat minX = 0.0;
+  CGFloat minY = 0.0;
+  CGFloat maxX = 0.0;
+  CGFloat maxY = 0.0;
+
+  for (NSUInteger i=0; i<count; i++)
+  {
+    CGPoint points[3];
+    CGPathElementType type = [path elementTypeAtIndex: i points: points];
+
+    NSUInteger numPoints;
+    NSUInteger realPointIndex = 0;
+    switch (type)
+    {
+      case kCGPathElementMoveToPoint:
+        numPoints = 1;
+        break;
+      case kCGPathElementAddLineToPoint:
+        numPoints = 1;
+        break;
+      case kCGPathElementAddQuadCurveToPoint:
+        numPoints = 2;
+        realPointIndex = 1;
+        break;
+      case kCGPathElementAddCurveToPoint:
+        numPoints = 3;
+        realPointIndex = 2;
+        break;
+      case kCGPathElementCloseSubpath:
+      default:
+        numPoints = 0;
+        break;
+    }
+
+    for (NSUInteger p=0; p<numPoints; p++)
+    {
+      if (p == realPointIndex)
+      {
+        if (points[p].x < minX)
+        {
+          minX = points[p].x;
+        }
+        else if (points[p].x > maxX)
+        {
+          maxX = points[p].x;
+        }
+        else if (points[p].y < minY)
+        {
+          minY = points[p].y;
+        }
+        else if (points[p].y > maxY)
+        {
+          maxY = points[p].y;
+        }
+      }
+    }
+  }
+
+  return CGRectMake(minX, minY, (maxX-minX), (maxY-minY));
+}
+
